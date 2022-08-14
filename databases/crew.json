@@ -1,0 +1,26 @@
+{
+    "Die Smokertruppe": {
+        "name": "Die Smokertruppe",
+        "tag": "ST",
+        "members": [],
+        "owner": "612625159656046643",
+        "categoryID": "1008404573897109595",
+        "tokens": 330,
+        "items": [
+            "boughtItem"
+        ]
+    },
+    "Die Gamerguys": {
+        "name": "Die Gamerguys",
+        "tag": "GG",
+        "members": [],
+        "owner": "617348743641038858",
+        "categoryID": "1008486830498398249",
+        "tokens": 500,
+        "items": [
+            "placeholderItem",
+            "anotherplaceholderItem",
+            "boughtItem"
+        ]
+    }
+}

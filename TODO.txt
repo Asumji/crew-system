@@ -1,0 +1,3 @@
+2. Crew shop (addItem, removeItem)
+3. Crew events
+4. Crew leveling (optional)

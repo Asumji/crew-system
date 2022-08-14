@@ -1,0 +1,22 @@
+{
+    "placeholderItem": {
+        "name": "placeholderItem",
+        "description": "This is a placeholder!",
+        "price": 20
+    },
+    "anotherplaceholderItem": {
+        "name": "anotherplaceholderItem",
+        "description": "This is another placeholder!",
+        "price": 50
+    },
+    "boughtItem": {
+        "name": "boughtItem",
+        "description": "This is an already bought item!",
+        "price": 80
+    },
+    "test": {
+        "name": "test",
+        "description": "test item if y'know what I mean",
+        "price": 50
+    }
+}
