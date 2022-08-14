@@ -143,7 +143,27 @@ module.exports = {
             }
         } else if (interaction.options._subcommand == "removeitem") {
             if (interaction.guild.members.cache.get(interaction.user.id).permissions.has(PermissionFlagsBits.ManageGuild)) {
-                console.log("removeItem")
+                if (shopDB.hasOwnProperty(interaction.options.getString("item"))) {
+                    delete shopDB[interaction.options.getString("item")]
+
+                    for (let crew in crewDB) {
+                        if (crewDB[crew].items.includes(interaction.options.getString("item"))) {
+                            crewDB[crew].items.splice(crewDB[crew].items.indexOf(interaction.options.getString("item")), 1)
+                        }
+                    }
+
+                    fs.writeFileSync("./databases/shop.json", JSON.stringify(shopDB, null, 4), err => {
+                        console.log(err);
+                    });
+                    fs.writeFileSync("./databases/crew.json", JSON.stringify(crewDB, null, 4), err => {
+                        console.log(err);
+                    });
+                    interaction.reply({content:"You removed " + interaction.options.getString("name") + " from the shop!",ephemeral:true})
+                } else {
+                    interaction.reply({content:"That item does not exists",ephemeral:true})
+                }
+            } else {
+                interaction.reply({content:"You do not have the permissions to use this command!",ephemeral:true})
             }
         }
     }
