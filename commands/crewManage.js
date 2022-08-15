@@ -57,17 +57,191 @@ module.exports = {
 			return returnee
 		}
 
-		function getCrew(userID, type) {
+		function getCrew(userID) {
 			for (let crew in crewDB) {
-				if (crewDB[crew].owner == userID && type == "owner") {
-					return crew
-				} else if (crewDB[crew].members.includes(userID) && type == "member") {
+				if (crewDB[crew].owner == userID || crewDB[crew].members.includes(userID)) {
 					return crew
 				}
 			}
 		}
 
 		const { crewDB } = require("../index.js")
+		if (crewDB[getCrew(interaction.user.id)]) {
+			if (interaction.options._subcommand == "invite") {
+				const row = new ActionRowBuilder()
+				.addComponents(
+					new ButtonBuilder()
+					.setCustomId("acceptInvite")
+					.setLabel("Accept")
+					.setStyle(ButtonStyle.Success),
+					new ButtonBuilder()
+					.setCustomId("declineInvite")
+					.setLabel("Decline")
+					.setStyle(ButtonStyle.Danger),
+				);
+				if (interaction.options.getUser("user") != interaction.user) {
+					if (interaction.options.getUser("user").id != interaction.applicationId)
+					if (checkCrew([interaction.options.getUser("user").id]) == true) {
+						if (interaction.options.getUser("user").id != interaction.applicationId) {
+							if (checkCrew([interaction.user.id]) == "You already own a crew!") {
+								interaction.options.getUser("user").send({content: interaction.user.username + " has invited you to join their crew!", components: [row]}).then(ch=> {
+									interaction.reply({content: "You invited <@!" + interaction.options.getUser("user") + "> to your crew!", ephemeral:true})
+									const collector = ch.createMessageComponentCollector({ time: 15000 });
+									collector.on("collect", async i => {
+										if (i.customId == "acceptInvite") {
+											crewDB[getCrew(interaction.user.id)].members.push(interaction.options.getUser("user").id)
+											let crewChId = interaction.guild.channels.cache.get(crewDB[getCrew(interaction.user.id)].categoryID).children.cache.firstKey()
+											interaction.guild.channels.cache.get(crewChId).permissionOverwrites.edit(interaction.options.getUser("user"),
+												{
+													ViewChannel:true
+												}
+											)
+											if (interaction.guild.ownerId != interaction.options.getUser("user").id) {
+												if (interaction.guild.members.cache.get(interaction.options.getUser("user").id).displayName.length <= 26) {
+													await i.update({ content: 'You accepted the invite!', components: [] });
+													interaction.guild.members.cache.get(interaction.options.getUser("user").id).setNickname("[" + crewDB[getCrew(interaction.user.id)].tag + "] " + interaction.guild.members.cache.get(interaction.options.getUser("user").id).displayName)
+												} else {
+													await i.update({ content: 'You accepted the invite!\nYou Name was too long for me to attach the Crew Tag to!', components: [] });
+													interaction.guild.members.cache.get(interaction.options.getUser("user").id).setNickname("[" + crewDB[getCrew(interaction.user.id)].tag + "] " + "TooLong")
+												}
+											} else {
+												await i.update({ content: 'You accepted the invite!\nNickname was not changed due to insufficient Permissions!', components: [] });
+											}
+
+											fs.writeFileSync("./databases/crew.json", JSON.stringify(crewDB, null, 4), err => {
+												console.log(err);
+											});
+										} else {
+											await i.update({ content: 'You declined the invite!', components: [] });
+										}
+									});
+								}).catch(() => interaction.reply({content:"The user you invited does not accept DMs, tell them to enable DMs!",ephemeral:true}))
+							} else {
+								interaction.reply({content:"You don't own the crew you're in!",ephemeral:true})
+							}
+						} else {
+							interaction.reply({content:"I cannot be invited to a crew!",ephemeral:true})
+						}
+					} else {
+						interaction.reply({content: "<@!" + interaction.options.getUser("user") + "> is already in a crew! They can run /crew leave to leave it!", ephemeral:true})
+					}
+				} else {
+					interaction.reply({content: "You can't invite yourself!", ephemeral:true})
+				}
+			} else if (interaction.options._subcommand == "leave") {
+				if (checkCrew([interaction.user.id]) != true) {
+					if (crewDB[getCrew(interaction.user.id)].owner == interaction.user.id) {
+						if (interaction.options.getUser("user") != undefined) {
+							if (getCrew(interaction.options.getUser("user").id) == getCrew(interaction.user.id)) {
+								let crewChId = interaction.guild.channels.cache.get(crewDB[getCrew(interaction.user.id)].categoryID).children.cache.firstKey()
+								interaction.guild.channels.cache.get(crewChId).permissionOverwrites.delete(interaction.user)
+								crewDB[getCrew(interaction.user.id)].owner = interaction.options.getUser("user").id
+								crewDB[getCrew(interaction.options.getUser("user").id)].members.splice(crewDB[getCrew(interaction.options.getUser("user").id)].members.indexOf(interaction.options.getUser("user").id), 1)
+
+								fs.writeFileSync("./databases/crew.json", JSON.stringify(crewDB, null, 4), err => {
+									console.log(err);
+								});
+								if (interaction.guild.ownerId != interaction.user.id) {
+									interaction.guild.members.cache.get(interaction.user.id).setNickname(interaction.user.username)
+									interaction.reply({content:"You left the crew and transferred your ownership!",ephemeral:true})
+								} else {
+									interaction.reply({content:"You left the crew and transferred your ownership!\nYour Nickname could not be changed due to me having insufficient Permissions!",ephemeral:true})
+								}
+							} else {
+								interaction.reply({content:"The member your provided isn't in your crew!",ephemeral:true})
+							}
+						} else {
+							interaction.reply({content:"You didn't provide a member to transfer ownership to!", ephemeral:true})
+						}
+					} else {
+						let crewChId = interaction.guild.channels.cache.get(crewDB[getCrew(interaction.user.id)].categoryID).children.cache.firstKey()
+						interaction.guild.channels.cache.get(crewChId).permissionOverwrites.delete(interaction.user)
+						crewDB[getCrew(interaction.user.id)].members.splice(crewDB[getCrew(interaction.user.id)].members.indexOf(interaction.user.id), 1)
+
+						fs.writeFileSync("./databases/crew.json", JSON.stringify(crewDB, null, 4), err => {
+							console.log(err);
+						});
+						if (interaction.guild.ownerId != interaction.user.id) {
+							interaction.reply({content:"You left the crew!",ephemeral:true})
+							interaction.guild.members.cache.get(interaction.user.id).setNickname(interaction.user.username)
+						} else {
+							interaction.reply({content:"You left the crew!\nYour Nickname could not be changed due to me having insufficient Permissions!",ephemeral:true})
+						}
+					}
+				} else {
+					interaction.reply({content:"You are not in a crew!",ephemeral:true})
+				}
+			} else if (interaction.options._subcommand == "transfer") {
+				let user = interaction.options.getUser("user")
+				if (interaction.user.id != user.id) {
+					if (crewDB[getCrew(interaction.user.id)].owner == interaction.user.id) {
+						if (getCrew(user.id) == getCrew(interaction.user.id)) {
+							crewDB[getCrew(interaction.user.id)].owner = interaction.options.getUser("user").id
+							crewDB[getCrew(user.id)].members.splice(crewDB[getCrew(interaction.options.getUser("user").id)].members.indexOf(interaction.options.getUser("user").id), 1)
+							crewDB[getCrew(user.id)].members.push(interaction.user.id)
+
+							fs.writeFileSync("./databases/crew.json", JSON.stringify(crewDB, null, 4), err => {
+								console.log(err);
+							});
+							interaction.reply({content:"You transferred ownership to <@!" + interaction.options.getUser("user").id + ">!", ephemeral:true})
+						} else {
+							interaction.reply({content:"That user is not in your crew!",ephemeral:true})
+						}
+					} else {
+						interaction.reply({content:"You are not the owner of your crew!",ephemeral:true})
+					}
+				} else {
+					interaction.reply({content:"You can't transfer ownership to yourself!",ephemeral:true})
+				}
+			} else if (interaction.options._subcommand == "delete") {
+				if (crewDB[getCrew(interaction.user.id)].owner == interaction.user.id) {
+					if (interaction.guild.ownerId != interaction.user.id) {
+						interaction.reply({content:"Your crew has been deleted!",ephemeral:true})
+						interaction.guild.members.cache.get(interaction.user.id).setNickname(interaction.user.username)
+					} else {
+						interaction.reply({content:"Your crew has been deleted!\nYour Nickname could not be changed due to me having insufficient Permissions!",ephemeral:true})
+					}
+					let crewChId = interaction.guild.channels.cache.get(crewDB[getCrew(interaction.user.id)].categoryID).children.cache.firstKey()
+					interaction.guild.channels.cache.get(crewChId).delete()
+					interaction.guild.channels.cache.get(crewDB[getCrew(interaction.user.id)].categoryID).delete()
+
+					delete crewDB[getCrew(interaction.user.id)]
+					
+					fs.writeFileSync("./databases/crew.json", JSON.stringify(crewDB, null, 4), err => {
+						console.log(err);
+					});
+				} else {
+					interaction.reply({content:"You are not the owner of your crew!!",ephemeral:true})
+				}
+			} else if (interaction.options._subcommand == "kick") {
+				let user = interaction.options.getUser("user")
+				if (crewDB[getCrew(interaction.user.id)].owner == interaction.user.id) {
+					if (getCrew(user.id) == getCrew(interaction.user.id)) {
+						let crewChId = interaction.guild.channels.cache.get(crewDB[getCrew(interaction.user.id)].categoryID).children.cache.firstKey()
+						interaction.guild.channels.cache.get(crewChId).permissionOverwrites.delete(interaction.options.getUser("user"))
+						crewDB[getCrew(interaction.options.getUser("user").id)].members.splice(crewDB[getCrew(interaction.options.getUser("user").id)].members.indexOf(interaction.options.getUser("user").id), 1)
+
+						fs.writeFileSync("./databases/crew.json", JSON.stringify(crewDB, null, 4), err => {
+							console.log(err);
+						});
+						if (interaction.guild.ownerId != interaction.options.getUser("user").id) {
+							interaction.reply({content:"You kicked <@!" + interaction.options.getUser("user").id + "> out of your crew!",ephemeral:true})
+							interaction.guild.members.cache.get(interaction.options.getUser("user").id).setNickname(interaction.options.getUser("user").username)
+						} else {
+							interaction.reply({content:"You kicked <@!" + interaction.options.getUser("user").id + "> out of your crew!\nTheir Nickname could not be changed due to me having insufficient Permissions!",ephemeral:true})
+						}
+					} else {
+						interaction.reply({content:"That user is not in your crew!",ephemeral:true})
+					}
+				} else {
+					interaction.reply({content:"You are not the owner of your crew!!",ephemeral:true})
+				}
+			}
+		} else {
+			if (interaction.options._subcommand != "create") {
+				interaction.reply({content:"You can only use these commands if you are in a crew!",ephemeral:true})
+			}
+		}
 		if (interaction.options._subcommand == "create") {
 			if (interaction.options.getString("tag").length <= 3) {
 				if (checkCrew([interaction.options.getString("name"), interaction.options.getString("tag"), interaction.user.id]) == true ) {
@@ -80,8 +254,8 @@ module.exports = {
 						tokens: 0,
 						items: []
 					}
-					await interaction.guild.channels.create({name:getCrew(interaction.user.id, "owner"),type:ChannelType.GuildCategory}).then(ch => {
-						crewDB[getCrew(interaction.user.id, "owner")].categoryID = ch.id
+					await interaction.guild.channels.create({name:getCrew(interaction.user.id),type:ChannelType.GuildCategory}).then(ch => {
+						crewDB[getCrew(interaction.user.id)].categoryID = ch.id
 						interaction.guild.channels.create({name:"crew-chat",type:ChannelType.GuildText,parent:ch.id}).then(chh => {
 							chh.permissionOverwrites.set([
 								{
@@ -114,171 +288,6 @@ module.exports = {
 				}
 			} else {
 				interaction.reply({ content: "The tag has too many letters!", ephemeral: true })
-			}
-		} else if (interaction.options._subcommand == "invite") {
-			const row = new ActionRowBuilder()
-			.addComponents(
-				new ButtonBuilder()
-				.setCustomId("acceptInvite")
-				.setLabel("Accept")
-				.setStyle(ButtonStyle.Success),
-				new ButtonBuilder()
-				.setCustomId("declineInvite")
-				.setLabel("Decline")
-				.setStyle(ButtonStyle.Danger),
-			);
-			if (interaction.options.getUser("user") != interaction.user) {
-				if (interaction.options.getUser("user").id != interaction.applicationId)
-				if (checkCrew([interaction.options.getUser("user").id]) == true) {
-					if (interaction.options.getUser("user").id != interaction.applicationId) {
-						if (checkCrew([interaction.user.id]) == "You already own a crew!") {
-							interaction.options.getUser("user").send({content: interaction.user.username + " has invited you to join their crew!", components: [row]}).then(ch=> {
-								interaction.reply({content: "You invited <@!" + interaction.options.getUser("user") + "> to your crew!", ephemeral:true})
-								const collector = ch.createMessageComponentCollector({ time: 15000 });
-								collector.on("collect", async i => {
-									if (i.customId == "acceptInvite") {
-										crewDB[getCrew(interaction.user.id, "owner")].members.push(interaction.options.getUser("user").id)
-										let crewChId = interaction.guild.channels.cache.get(crewDB[getCrew(interaction.user.id, "owner")].categoryID).children.cache.firstKey()
-										interaction.guild.channels.cache.get(crewChId).permissionOverwrites.edit(interaction.options.getUser("user"),
-											{
-												ViewChannel:true
-											}
-										)
-										if (interaction.guild.ownerId != interaction.options.getUser("user").id) {
-											if (interaction.guild.members.cache.get(interaction.options.getUser("user").id).displayName.length <= 26) {
-												await i.update({ content: 'You accepted the invite!', components: [] });
-												interaction.guild.members.cache.get(interaction.options.getUser("user").id).setNickname("[" + crewDB[getCrew(interaction.user.id, "owner")].tag + "] " + interaction.guild.members.cache.get(interaction.options.getUser("user").id).displayName)
-											} else {
-												await i.update({ content: 'You accepted the invite!\nYou Name was too long for me to attach the Crew Tag to!', components: [] });
-												interaction.guild.members.cache.get(interaction.options.getUser("user").id).setNickname("[" + crewDB[getCrew(interaction.user.id, "owner")].tag + "] " + "TooLong")
-											}
-										} else {
-											await i.update({ content: 'You accepted the invite!\nNickname was not changed due to insufficient Permissions!', components: [] });
-										}
-
-										fs.writeFileSync("./databases/crew.json", JSON.stringify(crewDB, null, 4), err => {
-											console.log(err);
-										});
-									} else {
-										await i.update({ content: 'You declined the invite!', components: [] });
-									}
-								});
-							}).catch(() => interaction.reply({content:"The user you invited does not accept DMs, tell them to enable DMs!",ephemeral:true}))
-						} else {
-							interaction.reply({content:"You don't own the crew you're in!",ephemeral:true})
-						}
-					} else {
-						interaction.reply({content:"I cannot be invited to a crew!",ephemeral:true})
-					}
-				} else {
-					interaction.reply({content: "<@!" + interaction.options.getUser("user") + "> is already in a crew! They can run /crew leave to leave it!", ephemeral:true})
-				}
-			} else {
-				interaction.reply({content: "You can't invite yourself!", ephemeral:true})
-			}
-		} else if (interaction.options._subcommand == "leave") {
-			if (checkCrew([interaction.user.id]) != true) {
-				if (getCrew(interaction.user.id, "owner")) {
-					if (interaction.options.getUser("user") != undefined) {
-						if (getCrew(interaction.options.getUser("user").id, "member") == getCrew(interaction.user.id, "owner")) {
-							let crewChId = interaction.guild.channels.cache.get(crewDB[getCrew(interaction.user.id, "owner")].categoryID).children.cache.firstKey()
-							interaction.guild.channels.cache.get(crewChId).permissionOverwrites.delete(interaction.user)
-							crewDB[getCrew(interaction.user.id, "owner")].owner = interaction.options.getUser("user").id
-							crewDB[getCrew(interaction.options.getUser("user").id, "member")].members.splice(crewDB[getCrew(interaction.options.getUser("user").id, "member")].members.indexOf(interaction.options.getUser("user").id), 1)
-
-							fs.writeFileSync("./databases/crew.json", JSON.stringify(crewDB, null, 4), err => {
-								console.log(err);
-							});
-							if (interaction.guild.ownerId != interaction.user.id) {
-								interaction.guild.members.cache.get(interaction.user.id).setNickname(interaction.user.username)
-								interaction.reply({content:"You left the crew and transferred your ownership!",ephemeral:true})
-							} else {
-								interaction.reply({content:"You left the crew and transferred your ownership!\nYour Nickname could not be changed due to me having insufficient Permissions!",ephemeral:true})
-							}
-						} else {
-							interaction.reply({content:"The member your provided isn't in your crew!",ephemeral:true})
-						}
-					} else {
-						interaction.reply({content:"You didn't provide a member to transfer ownership to!", ephemeral:true})
-					}
-				} else {
-					let crewChId = interaction.guild.channels.cache.get(crewDB[getCrew(interaction.user.id, "member")].categoryID).children.cache.firstKey()
-					interaction.guild.channels.cache.get(crewChId).permissionOverwrites.delete(interaction.user)
-					crewDB[getCrew(interaction.user.id, "member")].members.splice(crewDB[getCrew(interaction.user.id, "member")].members.indexOf(interaction.user.id), 1)
-
-					fs.writeFileSync("./databases/crew.json", JSON.stringify(crewDB, null, 4), err => {
-						console.log(err);
-					});
-					if (interaction.guild.ownerId != interaction.user.id) {
-						interaction.reply({content:"You left the crew!",ephemeral:true})
-						interaction.guild.members.cache.get(interaction.user.id).setNickname(interaction.user.username)
-					} else {
-						interaction.reply({content:"You left the crew!\nYour Nickname could not be changed due to me having insufficient Permissions!",ephemeral:true})
-					}
-				}
-			} else {
-				interaction.reply({content:"You are not in a crew!",ephemeral:true})
-			}
-		} else if (interaction.options._subcommand == "transfer") {
-			let user = interaction.options.getUser("user")
-			if (getCrew(interaction.user.id, "owner")) {
-				if (getCrew(user.id, "member") == getCrew(interaction.user.id, "owner")) {
-					crewDB[getCrew(interaction.user.id, "owner")].owner = interaction.options.getUser("user").id
-					crewDB[getCrew(user.id, "member")].members.splice(crewDB[getCrew(interaction.options.getUser("user").id, "member")].members.indexOf(interaction.options.getUser("user").id), 1)
-					crewDB[getCrew(user.id, "owner")].members.push(interaction.user.id)
-
-					fs.writeFileSync("./databases/crew.json", JSON.stringify(crewDB, null, 4), err => {
-						console.log(err);
-					});
-					interaction.reply({content:"You transferred ownership to <@!" + interaction.options.getUser("user").id + ">!", ephemeral:true})
-				} else {
-					interaction.reply({content:"That user is not in your crew!",ephemeral:true})
-				}
-			} else {
-				interaction.reply({content:"You are not the owner of your crew!!",ephemeral:true})
-			}
-		} else if (interaction.options._subcommand == "delete") {
-			if (getCrew(interaction.user.id, "owner")) {
-				if (interaction.guild.ownerId != interaction.user.id) {
-					interaction.reply({content:"Your crew has been deleted!",ephemeral:true})
-					interaction.guild.members.cache.get(interaction.user.id).setNickname(interaction.user.username)
-				} else {
-					interaction.reply({content:"Your crew has been deleted!\nYour Nickname could not be changed due to me having insufficient Permissions!",ephemeral:true})
-				}
-				let crewChId = interaction.guild.channels.cache.get(crewDB[getCrew(interaction.user.id, "owner")].categoryID).children.cache.firstKey()
-				interaction.guild.channels.cache.get(crewChId).delete()
-				interaction.guild.channels.cache.get(crewDB[getCrew(interaction.user.id, "owner")].categoryID).delete()
-
-				delete crewDB[getCrew(interaction.user.id, "owner")]
-				
-				fs.writeFileSync("./databases/crew.json", JSON.stringify(crewDB, null, 4), err => {
-					console.log(err);
-				});
-			} else {
-				interaction.reply({content:"You are not the owner of your crew!!",ephemeral:true})
-			}
-		} else if (interaction.options._subcommand == "kick") {
-			let user = interaction.options.getUser("user")
-			if (getCrew(interaction.user.id, "owner")) {
-				if (getCrew(user.id, "member") == getCrew(interaction.user.id, "owner")) {
-					let crewChId = interaction.guild.channels.cache.get(crewDB[getCrew(interaction.user.id, "owner")].categoryID).children.cache.firstKey()
-					interaction.guild.channels.cache.get(crewChId).permissionOverwrites.delete(interaction.options.getUser("user"))
-					crewDB[getCrew(interaction.options.getUser("user").id, "member")].members.splice(crewDB[getCrew(interaction.options.getUser("user").id, "member")].members.indexOf(interaction.options.getUser("user").id), 1)
-
-					fs.writeFileSync("./databases/crew.json", JSON.stringify(crewDB, null, 4), err => {
-						console.log(err);
-					});
-					if (interaction.guild.ownerId != interaction.options.getUser("user").id) {
-						interaction.reply({content:"You kicked <@!" + interaction.options.getUser("user").id + "> out of your crew!",ephemeral:true})
-						interaction.guild.members.cache.get(interaction.options.getUser("user").id).setNickname(interaction.options.getUser("user").username)
-					} else {
-						interaction.reply({content:"You kicked <@!" + interaction.options.getUser("user").id + "> out of your crew!\nTheir Nickname could not be changed due to me having insufficient Permissions!",ephemeral:true})
-					}
-				} else {
-					interaction.reply({content:"That user is not in your crew!",ephemeral:true})
-				}
-			} else {
-				interaction.reply({content:"You are not the owner of your crew!!",ephemeral:true})
 			}
 		}
 	},
