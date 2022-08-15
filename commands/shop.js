@@ -174,7 +174,9 @@ module.exports = {
                 }
             }
         } else {
-            interaction.reply({content:"You can only use these commands if you are in a crew!",ephemeral:true})
+            if (interaction.options._subcommand != "additem" && interaction.options._subcommand != "removeitem" && interaction.options._subcommand != "edititem") {
+                interaction.reply({content:"You can only use these commands if you are in a crew!",ephemeral:true})
+            }
         }
         if (interaction.options._subcommand == "additem") {
             if (interaction.guild.members.cache.get(interaction.user.id).permissions.has(PermissionFlagsBits.ManageGuild)) {
