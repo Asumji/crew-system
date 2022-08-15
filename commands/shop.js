@@ -34,6 +34,17 @@ module.exports = {
             sub.setName("removeitem")
             .setDescription("Lets you remove items from the shop (Requires Manage Server Permission)!")
             .addStringOption(option => option.setName("item").setDescription("The item you want to remove").setRequired(true))
+        )
+        .addSubcommand(sub => 
+            sub.setName("edititem")
+            .setDescription("Lets you edit items in the shop (Requires Manage Server Permission)!")
+            .addStringOption(option => option.setName("item").setDescription("The item you want to edit").setRequired(true))
+            .addStringOption(option => option.setName("property").setDescription("The property you want to edit").setRequired(true).addChoices(
+                {name:"name",value:"name"},
+                {name:"description",value:"description"},
+                {name:"price",value:"price"}
+            ))
+            .addStringOption(option => option.setName("value").setDescription("The new value you want to set").setRequired(true))
         ),
     async execute(interaction) {
         const { shopDB, crewDB } = require("../index.js")
@@ -68,6 +79,48 @@ module.exports = {
             }
             return string
         }
+
+        function editItem(item,property,value) {
+            if (property == "name") {
+                for (let crew in crewDB) {
+                    if (crewDB[crew].items.includes(item)) {
+                        crewDB[crew].items[crewDB[crew].items.indexOf(item)] = value
+                    }
+                }
+                fs.writeFileSync("./databases/crew.json", JSON.stringify(crewDB, null, 4), err => {
+                    console.log(err);
+                });
+
+                let json = shopDB[item]
+                json.name = value
+                delete shopDB[item]
+                shopDB[value] = {
+                    name: json.name,
+                    description: json.description,
+                    price: json.price
+                }
+                fs.writeFileSync("./databases/shop.json", JSON.stringify(shopDB, null, 4), err => {
+                    console.log(err);
+                });
+
+                interaction.reply({content:"You edited the name of " + item + " to \"" + value + "\"!",ephemeral:true})
+            } else if (property == "description") {
+                shopDB[item].description = value
+
+                fs.writeFileSync("./databases/shop.json", JSON.stringify(shopDB, null, 4), err => {
+                    console.log(err);
+                });
+                interaction.reply({content:"You edited the description of " + item + " to \"" + value + "\"!",ephemeral:true})
+            } else {
+                shopDB[item].price = Number(value)
+
+                fs.writeFileSync("./databases/shop.json", JSON.stringify(shopDB, null, 4), err => {
+                    console.log(err);
+                });
+                interaction.reply({content:"You edited the price of " + item + " to \"" + value + "\"!",ephemeral:true})
+            }
+        }
+
         if (getCrew(interaction.user.id) != undefined) {
             if (interaction.options._subcommand == "show") {
                 const embed = new EmbedBuilder()
@@ -158,9 +211,25 @@ module.exports = {
                     fs.writeFileSync("./databases/crew.json", JSON.stringify(crewDB, null, 4), err => {
                         console.log(err);
                     });
-                    interaction.reply({content:"You removed " + interaction.options.getString("name") + " from the shop!",ephemeral:true})
+                    interaction.reply({content:"You removed " + interaction.options.getString("item") + " from the shop!",ephemeral:true})
                 } else {
-                    interaction.reply({content:"That item does not exists",ephemeral:true})
+                    interaction.reply({content:"That item does not exist",ephemeral:true})
+                }
+            } else {
+                interaction.reply({content:"You do not have the permissions to use this command!",ephemeral:true})
+            }
+        } else if (interaction.options._subcommand == "edititem") {
+            if (interaction.guild.members.cache.get(interaction.user.id).permissions.has(PermissionFlagsBits.ManageGuild)) {
+                if (shopDB.hasOwnProperty(interaction.options.getString("item"))) {
+                    if (interaction.options.getString("property") == "price" && Number(interaction.options.getString("value"))) {
+                        editItem(interaction.options.getString("item"),interaction.options.getString("property"),interaction.options.getString("value"))
+                    } else if (interaction.options.getString("property") == "price") {
+                        interaction.reply({content:"You wanted to edit the price but didn't provide a number!",ephemeral:true})
+                    } else {
+                        editItem(interaction.options.getString("item"),interaction.options.getString("property"),interaction.options.getString("value"))
+                    }
+                } else {
+                    interaction.reply({content:"That item does not exist",ephemeral:true})
                 }
             } else {
                 interaction.reply({content:"You do not have the permissions to use this command!",ephemeral:true})
