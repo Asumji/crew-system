@@ -64,6 +64,15 @@ module.exports = {
 				}
 			}
 		}
+		
+		async function resetMembers(memberArray) {
+			for (let member in memberArray) {
+				const memberObj = await interaction.guild.members.fetch(memberArray[member])
+				if (memberObj.manageable) {
+					memberObj.setNickname(memberObj.user.username)
+				}
+			}
+		}
 
 		const { crewDB } = require("../index.js")
 		if (crewDB[getCrew(interaction.user.id)]) {
@@ -141,7 +150,7 @@ module.exports = {
 								fs.writeFileSync("./databases/crew.json", JSON.stringify(crewDB, null, 4), err => {
 									console.log(err);
 								});
-								if (interaction.guild.ownerId != interaction.user.id) {
+								if (interaction.guild.members.cache.get(interaction.user.id).manageable) {
 									interaction.guild.members.cache.get(interaction.user.id).setNickname(interaction.user.username)
 									interaction.reply({content:"You left the crew and transferred your ownership!",ephemeral:true})
 								} else {
@@ -161,7 +170,7 @@ module.exports = {
 						fs.writeFileSync("./databases/crew.json", JSON.stringify(crewDB, null, 4), err => {
 							console.log(err);
 						});
-						if (interaction.guild.ownerId != interaction.user.id) {
+						if (interaction.guild.members.cache.get(interaction.user.id).manageable) {
 							interaction.reply({content:"You left the crew!",ephemeral:true})
 							interaction.guild.members.cache.get(interaction.user.id).setNickname(interaction.user.username)
 						} else {
@@ -195,10 +204,12 @@ module.exports = {
 				}
 			} else if (interaction.options._subcommand == "delete") {
 				if (crewDB[getCrew(interaction.user.id)].owner == interaction.user.id) {
-					if (interaction.guild.ownerId != interaction.user.id) {
+					if (interaction.guild.members.cache.get(interaction.user.id).manageable) {
 						interaction.reply({content:"Your crew has been deleted!",ephemeral:true})
+						resetMembers(crewDB[getCrew(interaction.user.id)].members)
 						interaction.guild.members.cache.get(interaction.user.id).setNickname(interaction.user.username)
 					} else {
+						resetMembers(crewDB[getCrew(interaction.user.id)].members)
 						interaction.reply({content:"Your crew has been deleted!\nYour Nickname could not be changed due to me having insufficient Permissions!",ephemeral:true})
 					}
 					let crewChId = interaction.guild.channels.cache.get(crewDB[getCrew(interaction.user.id)].categoryID).children.cache.firstKey()
@@ -272,7 +283,7 @@ module.exports = {
 					fs.writeFileSync("./databases/crew.json", JSON.stringify(crewDB, null, 4), err => {
 						console.log(err);
 					});
-					if (interaction.guild.ownerId != interaction.user.id) {
+					if (interaction.guild.members.cache.get(interaction.user.id).manageable) {
 						if (interaction.guild.members.cache.get(interaction.user.id).displayName.length <= 26) {
 							interaction.reply({ content: "Successfully created a new crew with the name [" + crewDB[interaction.options.getString("name")].tag + "] " + crewDB[interaction.options.getString("name")].name, ephemeral: true })
 							interaction.guild.members.cache.get(interaction.user.id).setNickname("[" + crewDB[interaction.options.getString("name")].tag + "] " + interaction.guild.members.cache.get(interaction.user.id).displayName)
