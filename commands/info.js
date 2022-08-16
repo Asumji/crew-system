@@ -11,7 +11,7 @@ module.exports = {
         .setTitle("Info")
         .addFields
             (
-                {name:"Crews", value:"The base idea of the bot are crews: A crew consists of a tag, which is displayed in a member's nickname, a name, which is the full name the crew goes by, a private category for the members, and an owner who can manage said guild!"},
+                {name:"Crews", value:"The base idea of the bot are crews: A crew consists of a tag, which is displayed in a member's nickname, a name, which is the full name the crew goes by, a private category for the members, and an owner who can manage said crew!"},
                 {name:"Tokens",value:"Tokens are the currency crews use! These tokens can be given out by users with the Manage Server permission!"},
                 {name:"Shop",value:"This is where you can spend your tokens. Users with the Manage Server permission can add and remove items from this shop!"},
                 {name:"Additional Info",value:"As this is a project I, Asumji, worked on because I was bored I didn't implement automatic ways of gaining and spending tokens so these will be handled by the server staff! For example they could run events to give out tokens and add items like an extra channel!\nIf you want to see all crews use /list\nThis is a really bare-bones bot I made in a couple days so if you find any bugs, add me: Asumji#2143"}
