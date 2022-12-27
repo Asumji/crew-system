@@ -110,7 +110,7 @@ module.exports = {
 													await i.update({ content: 'You accepted the invite!', components: [] });
 													interaction.guild.members.cache.get(interaction.options.getUser("user").id).setNickname("[" + crewDB[getCrew(interaction.user.id)].tag + "] " + interaction.guild.members.cache.get(interaction.options.getUser("user").id).displayName)
 												} else {
-													await i.update({ content: 'You accepted the invite!\nYou Name was too long for me to attach the Crew Tag to!', components: [] });
+													await i.update({ content: 'You accepted the invite!\nYour Name was too long for me to attach the Crew Tag to!', components: [] });
 													interaction.guild.members.cache.get(interaction.options.getUser("user").id).setNickname("[" + crewDB[getCrew(interaction.user.id)].tag + "] " + "TooLong")
 												}
 											} else {
