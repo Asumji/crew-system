@@ -110,7 +110,7 @@ module.exports = {
 													await i.update({ content: 'You accepted the invite!', components: [] });
 													interaction.guild.members.cache.get(interaction.options.getUser("user").id).setNickname("[" + crewDB[getCrew(interaction.user.id)].tag + "] " + interaction.guild.members.cache.get(interaction.options.getUser("user").id).displayName)
 												} else {
-													await i.update({ content: 'You accepted the invite!\nYour Name was too long for me to attach the Crew Tag to!', components: [] });
+													await i.update({ content: 'You accepted the invite!\nYou Name was too long for me to attach the Crew Tag to!', components: [] });
 													interaction.guild.members.cache.get(interaction.options.getUser("user").id).setNickname("[" + crewDB[getCrew(interaction.user.id)].tag + "] " + "TooLong")
 												}
 											} else {
@@ -212,9 +212,15 @@ module.exports = {
 						resetMembers(crewDB[getCrew(interaction.user.id)].members)
 						interaction.reply({content:"Your crew has been deleted!\nYour Nickname could not be changed due to me having insufficient Permissions!",ephemeral:true})
 					}
-					let crewChId = interaction.guild.channels.cache.get(crewDB[getCrew(interaction.user.id)].categoryID).children.cache.firstKey()
-					interaction.guild.channels.cache.get(crewChId).delete()
-					interaction.guild.channels.cache.get(crewDB[getCrew(interaction.user.id)].categoryID).delete()
+					if (interaction.guild.channels.cache.find(ch => ch.id == crewDB[getCrew(interaction.user.id)].categoryID)) {
+						if (interaction.guild.channels.cache.get(crewDB[getCrew(interaction.user.id)].categoryID).children.cache.size > 0) {
+							let crewChId = interaction.guild.channels.cache.get(crewDB[getCrew(interaction.user.id)].categoryID).children.cache.firstKey()
+							interaction.guild.channels.cache.get(crewChId).delete()
+							interaction.guild.channels.cache.get(crewDB[getCrew(interaction.user.id)].categoryID).delete()
+						} else {
+							interaction.guild.channels.cache.get(crewDB[getCrew(interaction.user.id)].categoryID).delete()
+						}
+					}
 
 					delete crewDB[getCrew(interaction.user.id)]
 					
